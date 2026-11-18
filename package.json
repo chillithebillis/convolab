@@ -1,0 +1,79 @@
+{
+  "name": "convolab",
+  "productName": "CONVOLAB",
+  "version": "2.3.0",
+  "description": "Convolution art lab",
+  "author": "chillibillis",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:win": "electron-builder --win --publish never"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "45.3.4",
+    "electron-builder": "26.0.12",
+    "ffmpeg-static": "5.3.0"
+  },
+  "build": {
+    "appId": "studio.suttam.convolab",
+    "productName": "CONVOLAB",
+    "copyright": "© chillibillis",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.graphics-design",
+      "identity": null,
+      "hardenedRuntime": false,
+      "artifactName": "CONVOLAB-${version}-mac-arm64.${ext}",
+      "extraResources": [
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg",
+          "to": "ffmpeg"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "CONVOLAB-${version}-win-x64-setup.${ext}",
+      "extraResources": [
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+          "to": "ffmpeg.exe"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "CONVOLAB"
+    },
+    "afterPack": "build/after-pack.js"
+  }
+}
