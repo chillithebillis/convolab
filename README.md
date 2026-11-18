@@ -85,7 +85,8 @@ npm run dist:win     # Windows installer (on Windows)
 `ffmpeg-static` provides the ffmpeg binary that is bundled with the app. Set `CONVOLAB_FFMPEG` to
 use another ffmpeg.
 
-Pushing a `v*` tag builds both platforms on GitHub Actions and publishes a release with the
+Raising `version` in `package.json` and pushing to `main` builds both platforms on GitHub Actions
+and publishes a release with the
 macOS zip and the Windows installer. The in-app updater looks for those two file names.
 
 ---

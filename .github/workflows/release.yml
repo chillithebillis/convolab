@@ -2,7 +2,9 @@ name: Build and release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
+    paths: ['package.json', 'src/**', 'build/**', '.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -45,15 +47,28 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Version from package.json
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=v$(node -p "require('./package.json').version")
+          echo "tag=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "$V" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/download-artifact@v4
+        if: steps.v.outputs.exists == 'false'
         with:
           path: out
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
+        if: steps.v.outputs.exists == 'false'
         with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
           files: out/*
           generate_release_notes: true
