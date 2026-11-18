@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('native', {
   encFinish: id => ipcRenderer.invoke('encFinish', id),
   encCancel: id => ipcRenderer.invoke('encCancel', id),
   onMenu: cb => ipcRenderer.on('menu', (_e, cmd) => cb(cmd)),
+  askMedia: kind => ipcRenderer.invoke('askMedia', kind),
   version: () => ipcRenderer.invoke('version'),
   checkUpdates: () => ipcRenderer.invoke('checkUpdates'),
   installUpdate: () => ipcRenderer.invoke('installUpdate'),

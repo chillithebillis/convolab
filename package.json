@@ -1,7 +1,7 @@
 {
   "name": "convolab",
   "productName": "CONVOLAB",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Convolution art lab",
   "author": "chillibillis",
   "main": "src/main.js",
@@ -48,7 +48,11 @@
           "from": "node_modules/ffmpeg-static/ffmpeg",
           "to": "ffmpeg"
         }
-      ]
+      ],
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "CONVOLAB usa o microfone para reagir ao som ao vivo.",
+        "NSCameraUsageDescription": "CONVOLAB usa a câmera como fonte de imagem."
+      }
     },
     "win": {
       "target": [

@@ -1,5 +1,5 @@
 // CONVOLAB · Electron main process
-const { app, BrowserWindow, ipcMain, dialog, shell, screen, Menu, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, screen, Menu, session, systemPreferences } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -276,12 +276,18 @@ async function installUpdateWin(){
   spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', cmd], {detached:true, stdio:'ignore', windowsHide:true, windowsVerbatimArguments:true}).unref();
   app.quit();
 }
+ipcMain.handle('askMedia', async (_e, kind)=>{
+  if(!IS_MAC || !['microphone','camera'].includes(kind)) return true;
+  try{ if(systemPreferences.getMediaAccessStatus(kind)==='granted') return true; return await systemPreferences.askForMediaAccess(kind); }catch(e){ return false; }
+});
 ipcMain.handle('version', ()=>app.getVersion());
 ipcMain.handle('checkUpdates', ()=>checkForUpdates(true));
 ipcMain.handle('installUpdate', ()=>installUpdate());
 
 // ------------------------------------------------------------ app lifecycle
 if(IS_WIN) app.setAppUserModelId('studio.suttam.convolab');
+// audio analysis must run as soon as a file is opened, without waiting for a click
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.whenReady().then(()=>{
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb)=>cb(true));
   session.defaultSession.setPermissionCheckHandler(()=>true);

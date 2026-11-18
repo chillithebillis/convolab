@@ -34,11 +34,18 @@ Both versions check GitHub Releases for new versions and show an **Update** butt
 
 - **Sources.** Drop an image or a video on the canvas (or **File ▸ Open**). Generators, drawing and
   text can also feed the simulation.
-- **Presets.** 30 starting looks, from *Pyramid Weave* and *Turing Skin* to *Lenia* and
+- **Presets.** 39 starting looks, from *Pyramid Weave* and *Turing Skin* to *Lenia* and
   *Machined Metal*. Save your own presets with a thumbnail.
 - **Mask.** Load a black-and-white image or video as a mask (or drop it holding Option / Alt). The
   effect acts only on white, or on black in Invert mode. Works well with SAM mattes.
-- **Modulation.** LFOs and audio bands (level, low, mid, high) can drive any parameter. The render
+- **Styles.** Graphic renderings drawn over the evolving pattern: Riso (three-ink halftone with
+  misregistration), Engraving, Stained glass, Weave (plain, twill, satin), Type (glyph mosaic with
+  your font and characters), Op lines, Bauhaus, Light drip (pixel sort) and Cut paper. Paper and
+  three inks are editable, or use the image colours.
+- **Audio reactive.** With an audio file, the source video's sound or a live microphone, every
+  preset reacts on its own (*Reativo automático*, with an intensity control): lows, mids, highs
+  and the attack of each hit move the engine and the style. Video files use their own audio.
+- **Modulation.** LFOs and audio bands (level, low, mid, high, kick) can drive any parameter. The render
   analyses the audio frame by frame, so it matches what you see.
 - **Morph A/B.** Store two states and blend between them; the blend can be modulated.
 - **Keyframes.** Every parameter has a key button on the timeline, with auto-key.
