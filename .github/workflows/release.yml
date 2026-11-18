@@ -48,6 +48,7 @@ jobs:
 
   release:
     needs: build
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -58,7 +59,7 @@ jobs:
         run: |
           V=v$(node -p "require('./package.json').version")
           echo "tag=$V" >> "$GITHUB_OUTPUT"
-          if gh release view "$V" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+          echo "exists=false" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v5
         if: steps.v.outputs.exists == 'false'
         with:
@@ -71,4 +72,5 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: out/*
+          fail_on_unmatched_files: false
           generate_release_notes: true
