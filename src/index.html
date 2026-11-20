@@ -84,7 +84,7 @@ input[type=checkbox]{width:14px;height:14px;margin:0}
 /* panel */
 aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
 aside::-webkit-scrollbar{width:9px} aside::-webkit-scrollbar-thumb{background:#26262b;border-radius:5px;border:2px solid var(--panel)} aside::-webkit-scrollbar-thumb:hover{background:#34343a}
-#tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;background:var(--panel);border-bottom:1px solid var(--line)}
+#tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:6px;background:var(--panel);border-bottom:1px solid var(--line)}
 #tabs button{flex-direction:column;gap:3px;padding:6px 2px 5px;background:transparent;border-color:transparent;color:var(--mut);font-size:11px;font-weight:550}
 #tabs button:hover{color:var(--tx);background:var(--raise)}
 #tabs button.on{color:var(--tx);background:var(--raise2);border-color:var(--line2)}
@@ -127,6 +127,13 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);background:
 .kgrid input{text-align:center;padding:5px 1px;font-size:11.5px}
 .kh{display:flex;gap:4px;margin-top:7px} .kh button{flex:1;padding:4px}
 .note{color:var(--mut);font-size:12px;margin-top:8px;line-height:1.5}
+/* kernel lab */
+#labCv{display:block;width:100%;image-rendering:pixelated;background:#000;border-radius:var(--r-sm);box-shadow:0 0 0 1px var(--line2);cursor:crosshair;touch-action:none}
+.labtr{margin-top:8px} .labtr button{padding:5px 8px} #labIt{margin-left:auto;font:11px var(--mono);color:var(--mut);font-variant-numeric:tabular-nums}
+.labchips{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:7px} .labchips button{padding:4px 2px;font-size:11.5px}
+.labchips button.on{border-color:var(--acc);color:var(--acc);background:#1b1f0c}
+#labK{display:grid;gap:3px;margin-top:7px} #labK input{text-align:center;padding:5px 1px;font-size:11.5px;font-family:var(--mono)}
+#labSum{font:11.5px var(--mono);color:var(--tx);margin-top:7px} #labSum span{font-family:var(--sans);color:var(--mut)}
 .modeonly{display:none}
 .modrow{display:grid;grid-template-columns:1fr 1.25fr 1fr 24px;gap:4px;align-items:center;margin-top:5px}
 .modrow input[type=range]{height:14px} .modrow .x{padding:3px}
@@ -225,6 +232,8 @@ kbd{font:10.5px var(--mono);border:1px solid var(--line3);border-bottom-width:2p
       <h2>CONVOLAB — guia rápido</h2>
       <h4>Fluxo</h4>
       <p>Arraste uma <b>imagem ou vídeo</b> para a tela (ou File ▸ Open). Escolha um <b>preset</b>, ajuste os parâmetros e deixe as iterações rodarem. <i>Pause</i> congela; <i>Reset</i> volta para a fonte; <i>Freeze → Source</i> transforma o resultado atual em nova fonte (empilha efeitos).</p>
+      <h4>Kernel Lab</h4>
+      <p>Na aba <b>Lab</b>, teste kernels sobre formas simples (ponto, linha, disco…) passo a passo, pinte luz com o mouse e veja o efeito de Σ, gain e overflow. Quando gostar, <b>Send to Engine</b> leva o kernel para o motor principal; <b>Base → Source</b> e <b>Result → Source</b> viram fonte.</p>
       <h4>Máscara</h4>
       <p>Carregue uma imagem/vídeo P&B em <b>Mask</b> (ou arraste segurando <kbd>⌥</kbd>): o efeito só age no branco (ou no preto, em modo Invert). Ótimo com mattes do SAM/AUTOMATTE.</p>
       <h4>Modulação</h4>
@@ -251,7 +260,35 @@ kbd{font:10.5px var(--mono);border:1px solid var(--line3);border-bottom-width:2p
       <button data-tab="layers" data-i="layers">Layers</button>
       <button data-tab="animate" data-i="wave">Animate</button>
       <button data-tab="export" data-i="export">Export</button>
+      <button data-tab="lab" data-i="flask">Lab</button>
     </nav>
+    <div data-tab="lab" class="sec"><h3>Kernel Lab <span class="badge" id="labBadge"></span></h3><div class="body">
+      <canvas id="labCv" width="256" height="144" title="Arraste para pintar luz · ⇧ arraste apaga"></canvas>
+      <div class="row labtr"><button id="labPlay" data-i="play">Play</button><button id="labStep" data-i="step" title="Um passo">+1</button><button id="labReset" data-i="reset">Reset</button><span id="labIt">iter 0</span></div>
+      <div class="ctl"><label>Steps / frame</label><input type="range" id="labSpf" min="1" max="20" step="1" value="1"><output></output></div>
+      <div class="ctl"><label>Gain</label><input type="range" id="labGain" min="0" max="3" step="0.01" value="1"><output></output></div>
+      <div class="ctl"><label>Overflow</label><select id="labOver" style="grid-column:2/5"><option value="0">Clip (8-bit)</option><option value="1" selected>Wrap (mod)</option><option value="2">Fold (mirror)</option><option value="3">Soft (tanh)</option></select></div>
+      <div class="ctl"><label>Lab size</label><select id="labRes" style="grid-column:2/5"><option value="192">192 px · rápido</option><option value="256" selected>256 px</option><option value="384">384 px</option><option value="512">512 px · detalhe</option></select></div>
+      <div class="labchips" id="labBases"></div>
+      <div class="row" style="margin-top:7px"><button class="sm" id="labClearPaint">Limpar pintura</button></div>
+      <div class="note">Arraste no canvas para pintar luz (<kbd>⇧</kbd> apaga). A pintura entra na base e sobrevive ao Reset.</div>
+    </div></div>
+    <div data-tab="lab" class="sec"><h3>Lab kernel</h3><div class="body">
+      <div class="kh"><select id="labKs" style="width:auto"><option value="3">3×3</option><option value="5">5×5</option></select><button id="labNorm">Σ=1</button><button id="labMut" title="Pequena variação aleatória">Mutate</button><button id="labRand">Random</button></div>
+      <div id="labK"></div>
+      <div id="labSum"></div>
+      <div class="kh"><button id="labRot">Rotate</button><button id="labMir">Mirror</button><button id="labInv">Invert</button><button id="labZero">Zero</button></div>
+      <div class="labchips" id="labPresets"></div>
+      <div class="note">Verde = peso positivo (soma luz) · rosa = negativo (empurra luz e cria anéis). A base <b>Dot</b> mostra no primeiro passo o próprio kernel.</div>
+    </div></div>
+    <div data-tab="lab" class="sec"><h3>Engine bridge</h3><div class="body">
+      <div class="row"><select id="labDest" style="width:auto"><option value="all">Kernel RGB</option><option value="0">Só R</option><option value="1">Só G</option><option value="2">Só B</option></select><button id="labSend" class="pri grow">Send to Engine</button></div>
+      <label class="chk"><input type="checkbox" id="labClean" checked> Zerar angle, skew, flow, warp, bias e inject ao enviar</label>
+      <div class="row"><button id="labImport" class="grow">Import from Engine</button></div>
+      <div class="row"><button id="labBaseSrc" class="grow">Base → Source</button><button id="labResSrc" class="grow">Result → Source</button></div>
+      <div class="note"><b>Send</b> leva kernel, gain, overflow e steps (→ Iter / frame) para o motor Convolution. <b>Base → Source</b> redesenha a forma na resolução do canvas principal. <b>Result → Source</b> leva o estado do Lab ampliado em pixel. No canvas grande a mesma regra gera um desenho proporcionalmente menor: use <i>Tap spacing</i> no Engine para aumentar a escala.</div>
+    </div></div>
+
     <div data-tab="create" class="sec"><h3>Source</h3><div class="body">
       <div class="row"><button id="bLoad" class="grow">Open image / video</button><input type="file" id="file" accept="image/*,video/*,.mov,.mxf,.tif,.tiff,.exr" hidden>
         <button id="bLoadPreset" title="Recupera parâmetros de um PNG ou JSON do CONVOLAB">Open PNG/JSON</button><input type="file" id="filePreset" accept=".json,.png" hidden></div>
@@ -4198,6 +4235,7 @@ const ICONS = {
   image:'<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m20.5 15-5-5L4 20.5"/>',
   cpu:'<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/>',
   layers:'<path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>',
+  flask:'<path d="M9.5 3.5h5"/><path d="M10.5 3.5v5.2L4.8 18.4A1.4 1.4 0 0 0 6 20.5h12a1.4 1.4 0 0 0 1.2-2.1l-5.7-9.7V3.5"/><path d="M7.4 14.5h9.2"/>',
   wave:'<path d="M2.5 12c1.6-5 3.2-5 4.8 0s3.2 5 4.8 0 3.2-5 4.8 0 3.2 5 4.6 0"/>', export:'<path d="M12 3.5v11.5"/><path d="m7.5 8 4.5-4.5L16.5 8"/><path d="M4.5 20.5h15"/>',
 };
 function svgIcon(n){ return `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`; }
@@ -4213,12 +4251,142 @@ document.addEventListener('input', e=>{ if(e.target.type==='range') fillRange(e.
 $('search').addEventListener('input', e=>{ const q=e.target.value.trim().toLowerCase(); document.querySelectorAll('.preset').forEach(b=>b.hidden = !!q && !b.textContent.toLowerCase().includes(q)); });
 const sty = document.createElement('style'); sty.textContent = '.sec.na{display:none!important}'; document.head.appendChild(sty);
 
+
+// ---------------------------------------------------------------- KERNEL LAB (CPU preview, same math as FS_CONV)
+const LAB = { k:k9([.1,.2,.1,.2,.3,.2,.1,.2,.1]), ks:3, over:1, gain:1, spf:1, base:'dot', strokes:[], A:null, B:null, w:256, h:144, it:0, run:false, drag:false };
+const LAB_PRESETS = {
+  Blur:K.blur, Grow:k9([.1,.2,.1,.2,.3,.2,.1,.2,.1]), Sharp:K.sharp, Sharp8:K.sharp8,
+  Edge:k9([-1,-1,-1,-1,8.2,-1,-1,-1,-1]), Emboss:k9([-2,-1,0,-1,1.1,1,0,1,2]), Drip:k9([0,.9,0,0,.5,0,0,0,0]), Wind:k9([.35,0,0,0,.5,0,0,0,.35]),
+  Ring:k9([.3,-.2,.3,-.2,1.1,-.2,.3,-.2,.3]), Wave:K.wave, Hex:K.hex, Echo:K.echo, Ring5:K.ring5, Star5:K.star5, LongDrip:K.longdrip, Cross5:(()=>{ const o=new Array(25).fill(0); [2,7,10,11,13,14,17,22].forEach(i=>o[i]=.15); o[12]=.1; return o; })(),
+};
+const LAB_BASES = [['blank','Blank'],['dot','Dot'],['pair','Pair'],['nine','Nine'],['line','Line'],['cross','Cross'],['arc','Arc'],['square','Square'],['disc','Disc'],['triangle','Triangle'],['horizon','Horizon']];
+const labCells = ()=>{ const s=LAB.ks, off=(5-s)/2, out=[]; for(let r=0;r<s;r++) for(let c=0;c<s;c++) out.push((r+off)*5+(c+off)); return out; };
+function labDrawBase(ctx, w, h){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.strokeStyle='#fff'; ctx.lineCap='round';
+  const lw = Math.max(1, h*0.006), dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(x*w,y*h,Math.max(1.2,r*h),0,Math.PI*2); ctx.fill(); };
+  ctx.lineWidth = lw;
+  switch(LAB.base){
+    case 'dot': dot(0.618,0.42,0.012); break;
+    case 'pair': dot(0.38,0.55,0.035); dot(0.64,0.40,0.012); break;
+    case 'nine': for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++) dot(0.5+i*0.09,0.5+j*0.16,0.008); break;
+    case 'line': ctx.beginPath(); ctx.moveTo(0.30*w,0.70*h); ctx.lineTo(0.66*w,0.30*h); ctx.stroke(); break;
+    case 'cross': { const x=0.44*w,y=0.52*h,a=0.11*h; ctx.beginPath(); ctx.moveTo(x-a,y); ctx.lineTo(x+a,y); ctx.moveTo(x,y-a); ctx.lineTo(x,y+a); ctx.stroke(); break; }
+    case 'arc': ctx.beginPath(); ctx.arc(0.5*w,0.55*h,0.22*h,200*Math.PI/180,340*Math.PI/180); ctx.stroke(); break;
+    case 'square': { const a=0.17*h; ctx.lineCap='butt'; ctx.strokeRect(0.5*w-a,0.5*h-a,2*a,2*a); break; }
+    case 'disc': dot(0.5,0.5,0.14); break;
+    case 'triangle': ctx.beginPath(); ctx.moveTo(0.36*w,0.70*h); ctx.lineTo(0.66*w,0.66*h); ctx.lineTo(0.47*w,0.26*h); ctx.closePath(); ctx.fill(); break;
+    case 'horizon': ctx.fillRect(0,0.62*h,w,h); break;
+  }
+  for(const s of LAB.strokes){ ctx.fillStyle = s.e?'#000':'#fff'; ctx.beginPath(); ctx.arc(s.x*w,s.y*h,Math.max(1.2,s.r*h),0,Math.PI*2); ctx.fill(); }
+}
+function labSize(){ const w=+$('labRes').value; const asp = (W&&H)? W/H : 16/9; let h=Math.round(w/asp); h=Math.max(48, Math.min(h, w*2)); return [w,h]; }
+function labReset(){
+  const [w,h]=labSize(); LAB.w=w; LAB.h=h; const c=$('labCv'); c.width=w; c.height=h;
+  const t=document.createElement('canvas'); t.width=w; t.height=h; const x=t.getContext('2d'); labDrawBase(x,w,h);
+  const d=x.getImageData(0,0,w,h).data; LAB.A=new Float32Array(w*h); LAB.B=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++) LAB.A[i]=(d[i*4]*0.2126+d[i*4+1]*0.7152+d[i*4+2]*0.0722)/255;
+  LAB.it=0; labDraw();
+}
+function labOverflow(v){ const o=LAB.over;
+  if(o===0) return v<0?0:v>1?1:v;
+  if(o===1) return v-Math.floor(v);
+  if(o===2){ const m=v-2*Math.floor(v/2); return 1-Math.abs(1-m); }
+  const t=0.5+0.5*Math.tanh((v-0.5)*2.2); return t<0?0:t>1?1:t; }
+function labStep(){
+  const {w,h}=LAB, A=LAB.A, B=LAB.B, g=LAB.gain, r=LAB.ks===5?2:1, taps=[];
+  for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++){ const wt=LAB.k[(j+2)*5+(i+2)]; if(wt) taps.push(i,j,wt); }
+  const n=taps.length;
+  for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ let acc=0;
+      for(let t=0;t<n;t+=3){ let xx=x+taps[t], yy=y+taps[t+1]; if(xx<0) xx+=w; else if(xx>=w) xx-=w; if(yy<0) yy+=h; else if(yy>=h) yy-=h; acc+=taps[t+2]*A[yy*w+xx]; }
+      const cen=A[y*w+x]; B[y*w+x]=labOverflow(cen+(acc-cen)*g); } }
+  LAB.A=B; LAB.B=A; LAB.it++;
+}
+function labDraw(){
+  const c=$('labCv'), x=c.getContext('2d'), {w,h}=LAB, im=x.createImageData(w,h), A=LAB.A;
+  for(let i=0;i<w*h;i++){ const v=A[i]*255; im.data[i*4]=v; im.data[i*4+1]=v; im.data[i*4+2]=v; im.data[i*4+3]=255; }
+  x.putImageData(im,0,0); $('labIt').textContent='iter '+LAB.it;
+}
+function labSumVal(){ return labCells().reduce((a,i)=>a+LAB.k[i],0); }
+function labKShow(){
+  const g=$('labK'); g.style.gridTemplateColumns=`repeat(${LAB.ks},1fr)`;
+  if(g.children.length!==LAB.ks*LAB.ks){ g.innerHTML=''; labCells().forEach(idx=>{ const inp=document.createElement('input'); inp.type='number'; inp.step='0.1'; inp.dataset.i=idx;
+      inp.addEventListener('input',()=>{ LAB.k[idx]=parseFloat(inp.value)||0; labKColor(); labSumShow(); }); g.appendChild(inp); }); }
+  [...g.children].forEach(inp=>inp.value=Math.round(LAB.k[+inp.dataset.i]*1000)/1000); labKColor(); labSumShow();
+}
+function labKColor(){ [...$('labK').children].forEach(inp=>{ const v=LAB.k[+inp.dataset.i], a=Math.min(Math.abs(v)/2,1)*0.55;
+  inp.style.background = v>0? `rgba(216,255,60,${a})` : v<0? `rgba(255,79,154,${a})` : ''; inp.style.color = a>0.3? '#0b0d00' : ''; }); }
+function labSumShow(){ const s=labSumVal(), eff=1+(s-1)*LAB.gain; const txt = eff>1.02?'a luz cresce a cada passo' : eff<0.98?'a luz some aos poucos' : 'a luz só se espalha';
+  $('labSum').innerHTML=`Σ = ${(Math.round(s*1000)/1000)} · efetivo ${(Math.round(eff*1000)/1000)} <span>· ${txt}</span>`; $('labBadge').textContent=LAB.run?'● run':''; }
+function labSetKs(n){ LAB.ks=n; $('labKs').value=String(n); if(n===3){ for(let r=0;r<5;r++) for(let c=0;c<5;c++) if(r===0||r===4||c===0||c===4) LAB.k[r*5+c]=0; } $('labK').innerHTML=''; labKShow(); }
+function labPlayUI(){ setIcon($('labPlay'), LAB.run?'pause':'play', LAB.run?'Pause':'Play'); labSumShow(); }
+function labChips(box, list, cur, cb){ box.innerHTML=''; list.forEach(([v,t])=>{ const b=document.createElement('button'); b.textContent=t; b.dataset.v=v; if(v===cur) b.classList.add('on');
+  b.onclick=()=>{ [...box.children].forEach(x=>x.classList.toggle('on',x===b)); cb(v); }; box.appendChild(b); }); }
+function labRangeBind(id, key, f){ const r=$(id), o=r.parentElement.querySelector('output'); const up=()=>{ LAB[key]=+r.value; o.textContent=f?f(+r.value):r.value; fillRange(r); labSumShow(); }; r.addEventListener('input',up); r.value=LAB[key]; up(); }
+function labPaint(e){
+  const c=$('labCv'), b=c.getBoundingClientRect(), nx=(e.clientX-b.left)/b.width, ny=(e.clientY-b.top)/b.height; if(nx<0||ny<0||nx>1||ny>1) return;
+  const s={x:nx,y:ny,r:0.012,e:e.shiftKey}; LAB.strokes.push(s);
+  const {w,h}=LAB, cx=nx*w, cy=ny*h, rr=Math.max(1.2,s.r*h);
+  for(let y=Math.floor(cy-rr);y<=Math.ceil(cy+rr);y++) for(let x=Math.floor(cx-rr);x<=Math.ceil(cx+rr);x++){
+    if(x<0||y<0||x>=w||y>=h) continue; if((x+0.5-cx)**2+(y+0.5-cy)**2<=rr*rr) LAB.A[y*w+x]=s.e?0:1; }
+  labDraw();
+}
+function labToSourceCanvas(fn){ const c=document.createElement('canvas'); c.width=W; c.height=H; fn(c.getContext('2d'), W, H);
+  c.toBlob(b=>{ if(!b){ toast('Falha ao gerar a imagem'); return; } loadSource(new File([b],'convolab-lab.png',{type:'image/png'})).then(()=>toast('Lab → Source ('+W+'×'+H+')')); }, 'image/png'); }
+function labSend(){
+  const d=$('labDest').value, ch = d==='all'?[0,1,2]:[+d];
+  for(const c of ch) P[kKey(c)] = LAB.k.slice();
+  if(d!=='all'){ for(const c of [0,1,2]) if(!ch.includes(c) && P[kKey(c)].every(v=>v===0)) P[kKey(c)] = LAB.k.slice(); }
+  P.mode='conv'; P.ks=LAB.ks; P.over=LAB.over; P.gain=LAB.gain; P.iters=LAB.spf;
+  if($('labClean').checked) Object.assign(P,{ang:0,angStep:0,skew:0,flow:0,warp:0,dilate:0,bias:0,gainMap:0,inject:0,chanRot:false});
+  activePreset=-1; document.querySelectorAll('.preset.active').forEach(b=>b.classList.remove('active'));
+  syncUI(); fillAllRanges(); resetState(); playing=true; updatePlay();
+  toast('Kernel do Lab enviado ao Engine'+(d==='all'?'':' (canal '+'RGB'[+d]+')'));
+}
+function labImport(){ const c=kChans()[0]; LAB.k=P[kKey(c)].slice(); LAB.over=+P.over||0; LAB.gain=+P.gain||1; LAB.spf=Math.max(1,Math.min(20,+P.iters||1));
+  $('labOver').value=String(LAB.over); $('labGain').value=LAB.gain; $('labSpf').value=LAB.spf; ['labGain','labSpf'].forEach(i=>$(i).dispatchEvent(new Event('input')));
+  labSetKs(P.ks||3); labReset(); toast('Kernel do Engine importado'+(P.mode!=='conv'?' (o modo atual não é Convolution)':'')); }
+function initLab(){
+  labRangeBind('labSpf','spf'); labRangeBind('labGain','gain',v=>v.toFixed(2));
+  $('labOver').onchange=e=>{ LAB.over=+e.target.value; };
+  $('labRes').onchange=labReset;
+  $('labKs').onchange=e=>labSetKs(+e.target.value);
+  labChips($('labBases'), LAB_BASES, LAB.base, v=>{ LAB.base=v; labReset(); });
+  labChips($('labPresets'), Object.keys(LAB_PRESETS).map(n=>[n,n]), 'Grow', n=>{ LAB.k=LAB_PRESETS[n].slice(); const big=LAB.k.some((v,i)=>v&&(i<5||i>19||i%5===0||i%5===4)); labSetKs(big?5:3); labReset(); });
+  $('labPlay').onclick=()=>{ LAB.run=!LAB.run; labPlayUI(); };
+  $('labStep').onclick=()=>{ labStep(); labDraw(); };
+  $('labReset').onclick=labReset;
+  $('labClearPaint').onclick=()=>{ LAB.strokes=[]; labReset(); };
+  $('labNorm').onclick=()=>{ LAB.k[12]+=1-labSumVal(); labKShow(); };
+  $('labMut').onclick=()=>{ labCells().forEach(i=>{ const g=(Math.random()+Math.random()+Math.random()-1.5)*0.25; LAB.k[i]=Math.round((LAB.k[i]+g)*100)/100; }); labKShow(); };
+  $('labRand').onclick=()=>{ const a=new Array(25).fill(0), cells=labCells(); cells.forEach(i=>{ if(i!==12) a[i]=Math.random()<0.4?0:Math.round((Math.random()*2.4-1.3)*10)/10; }); a[12]=1.15-cells.reduce((x,i)=>x+(i===12?0:a[i]),0); LAB.k=a; labKShow(); };
+  $('labRot').onclick=()=>{ const a=LAB.k, b=new Array(25).fill(0);
+    if(LAB.ks===3){ const ring=[6,7,8,13,18,17,16,11]; b[12]=a[12]; ring.forEach((idx,k)=>b[ring[(k+1)%8]]=a[idx]); } else { for(let r=0;r<5;r++) for(let c=0;c<5;c++) b[c*5+(4-r)]=a[r*5+c]; }
+    LAB.k=b; labKShow(); };
+  $('labMir').onclick=()=>{ const a=LAB.k, b=a.slice(); for(let r=0;r<5;r++) for(let c=0;c<5;c++) b[r*5+c]=a[r*5+(4-c)]; LAB.k=b; labKShow(); };
+  $('labInv').onclick=()=>{ const s0=labSumVal(); for(let i=0;i<25;i++) if(i!==12) LAB.k[i]=-LAB.k[i]; LAB.k[12]+=s0-labSumVal(); labKShow(); };
+  $('labZero').onclick=()=>{ LAB.k=new Array(25).fill(0); LAB.k[12]=1; labKShow(); };
+  $('labSend').onclick=labSend; $('labImport').onclick=labImport;
+  $('labBaseSrc').onclick=()=>labToSourceCanvas((x,w,h)=>labDrawBase(x,w,h));
+  $('labResSrc').onclick=()=>labToSourceCanvas((x,w,h)=>{ x.imageSmoothingEnabled=false; x.drawImage($('labCv'),0,0,w,h); });
+  const cvl=$('labCv');
+  cvl.addEventListener('pointerdown',e=>{ LAB.drag=true; cvl.setPointerCapture(e.pointerId); labPaint(e); });
+  cvl.addEventListener('pointermove',e=>{ if(LAB.drag) labPaint(e); });
+  cvl.addEventListener('pointerup',()=>{ LAB.drag=false; });
+  labKShow(); labPlayUI(); labReset();
+  let lastAsp=0;
+  const loop=()=>{ if(curTab==='lab' && !document.hidden){
+      const asp=W/H; if(Math.abs(asp-lastAsp)>1e-3){ lastAsp=asp; if(LAB.w/LAB.h && Math.abs(LAB.w/LAB.h-asp)>0.02) labReset(); }
+      if(LAB.run){ const t0=performance.now(); for(let i=0;i<LAB.spf;i++){ labStep(); if(performance.now()-t0>30) break; } labDraw(); } }
+    setTimeout(()=>requestAnimationFrame(loop), 45); };
+  loop();
+}
+
 // ---------------------------------------------------------------- BOOT
 buildUI();
 clearMask();
 applyPreset(0);
 renderUserPresets();
-initMIDI(); initExt(); showTab('create'); fillAllRanges();
+initMIDI(); initExt(); initLab(); showTab('create'); fillAllRanges();
 if(NATIVE && NATIVE.version){ NATIVE.version().then(v=>{ $('ver').textContent='v'+v; }); }
 if(NATIVE && NATIVE.onUpdate){
   NATIVE.onUpdate(info=>{ if(info.state==='available'){ $('updateTxt').textContent=`Nova versão ${info.version}`; $('updateBar').classList.add('on'); }

@@ -1,7 +1,7 @@
 {
   "name": "convolab",
   "productName": "CONVOLAB",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Convolution art lab",
   "author": "chillibillis",
   "main": "src/main.js",

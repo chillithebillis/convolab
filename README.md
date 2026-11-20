@@ -36,6 +36,9 @@ Both versions check GitHub Releases for new versions and show an **Update** butt
   text can also feed the simulation.
 - **Presets.** 39 starting looks, from *Pyramid Weave* and *Turing Skin* to *Lenia* and
   *Machined Metal*. Save your own presets with a thumbnail.
+- **Kernel Lab.** A pocket lab tab: try a 3×3 or 5×5 kernel on simple shapes (dot, line, disc,
+  horizon…) step by step, paint light with the mouse, see what Σ, gain and overflow do, then
+  **Send to Engine**, or turn the base or the lab result into the source.
 - **Mask.** Load a black-and-white image or video as a mask (or drop it holding Option / Alt). The
   effect acts only on white, or on black in Invert mode. Works well with SAM mattes.
 - **Styles.** Graphic renderings drawn over the evolving pattern: Riso (three-ink halftone with
